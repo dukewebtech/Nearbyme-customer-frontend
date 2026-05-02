@@ -1,0 +1,9 @@
+{
+  "pid": 23412,
+  "startedAt": 1777736444742,
+  "command": "dev",
+  "cwd": "/Users/macbookpro/customer-frontend",
+  "port": 3002,
+  "hostname": "::1",
+  "url": "http://[::1]:3002"
+}
