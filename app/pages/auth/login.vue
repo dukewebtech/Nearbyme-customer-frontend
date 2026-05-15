@@ -109,7 +109,7 @@ async function handleLogin() {
   try {
     await auth.login(form.email, form.password)
     await cartStore.fetchCart()
-    router.push('/')
+    router.push('/category-select')
   } catch (e: any) {
     error.value = e?.data?.error ?? e?.message ?? 'Invalid credentials'
   } finally {

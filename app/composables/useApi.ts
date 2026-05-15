@@ -32,7 +32,7 @@ export const useApi = () => {
   const getMe     = () => get('/auth/me')
 
   // Restaurants / stores (filter by store_type: 'restaurant' | 'pharmacy' | 'shop')
-  const getRestaurants = (params?: Record<string, any>) => get('/restaurants', params)
+  const getRestaurants = (params?: Record<string, any>) => get('/restaurants', { store_type: 'restaurant', ...params })
   const getRestaurant  = (id: string) => get(`/restaurants/${id}`)
   const getPharmacies  = (params?: Record<string, any>) => get('/restaurants', { store_type: 'pharmacy', ...params })
   const getShops       = (params?: Record<string, any>) => get('/restaurants', { store_type: 'shop', ...params })
