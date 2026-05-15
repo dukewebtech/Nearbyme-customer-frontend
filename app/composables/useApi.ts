@@ -31,9 +31,11 @@ export const useApi = () => {
   const signupApi = (body: any) => post('/auth/signup', body)
   const getMe     = () => get('/auth/me')
 
-  // Restaurants
+  // Restaurants / stores (filter by store_type: 'restaurant' | 'pharmacy' | 'shop')
   const getRestaurants = (params?: Record<string, any>) => get('/restaurants', params)
   const getRestaurant  = (id: string) => get(`/restaurants/${id}`)
+  const getPharmacies  = (params?: Record<string, any>) => get('/restaurants', { store_type: 'pharmacy', ...params })
+  const getShops       = (params?: Record<string, any>) => get('/restaurants', { store_type: 'shop', ...params })
 
   // Categories
   const getCategories = (rid: string) => get(`/restaurants/${rid}/categories`)
@@ -64,7 +66,7 @@ export const useApi = () => {
 
   return {
     loginApi, signupApi, getMe,
-    getRestaurants, getRestaurant,
+    getRestaurants, getRestaurant, getPharmacies, getShops,
     getCategories, getMenuItems, getMenuItem,
     getCart, addToCart, updateCartItem, removeCartItem, clearCart, applyPromo,
     getOrders, getOrder, placeOrder,
