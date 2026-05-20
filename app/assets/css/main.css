@@ -21,3 +21,17 @@
 * { -webkit-tap-highlight-color: transparent; }
 
 body { background-color: #fafafa; }
+
+input,
+textarea,
+select {
+  color: #1e1e1e;
+  -webkit-text-fill-color: #1e1e1e;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #aaaaaa;
+  -webkit-text-fill-color: #aaaaaa;
+  opacity: 1;
+}
