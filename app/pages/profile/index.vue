@@ -13,7 +13,7 @@
           <p class="text-base font-semibold text-[#191919] truncate">{{ fullName || 'User' }}</p>
           <p class="text-sm text-[#969696] truncate">{{ authStore.user?.email ?? '' }}</p>
         </div>
-        <button class="w-9 h-9 rounded-full bg-[#fdefec] flex items-center justify-center shrink-0">
+        <button class="w-9 h-9 rounded-full bg-[#fdefec] flex items-center justify-center shrink-0" @click="navigateTo('/profile/account')">
           <UIcon name="i-lucide-pencil" class="w-4 h-4 text-brand-500" />
         </button>
       </div>
@@ -86,31 +86,37 @@ const menuItems = [
     icon: 'i-lucide-user',
     label: 'Account Info',
     desc: 'Full name, Contact details, Birth date',
-    action: () => {},
+    action: () => navigateTo('/profile/account'),
   },
   {
     icon: 'i-lucide-shield',
     label: 'Settings',
     desc: 'Change Password, Two-Step Authentication',
-    action: () => {},
+    action: () => navigateTo('/profile/settings'),
   },
   {
     icon: 'i-lucide-credit-card',
     label: 'Payment Method',
     desc: 'Account details, Cards',
-    action: () => {},
+    action: () => navigateTo('/profile/payment-methods'),
+  },
+  {
+    icon: 'i-lucide-bell',
+    label: 'Notification Preferences',
+    desc: 'Delivery, Payment, Dispatch alerts',
+    action: () => navigateTo('/profile/notifications-pref'),
   },
   {
     icon: 'i-lucide-globe',
     label: 'Language',
     desc: 'English (Default)',
-    action: () => {},
+    action: () => navigateTo('/profile/language'),
   },
   {
     icon: 'i-lucide-life-buoy',
     label: 'Help & Support',
     desc: 'Report, FAQ, Customer Service',
-    action: () => {},
+    action: () => navigateTo('/profile/help'),
   },
   {
     icon: 'i-lucide-log-out',

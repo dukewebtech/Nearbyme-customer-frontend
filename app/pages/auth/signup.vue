@@ -109,7 +109,7 @@ async function handleSignup() {
   error.value = ''
   try {
     await auth.signup(form.email, form.password, form.firstName, form.lastName)
-    router.push('/category-select')
+    router.push('/location-permission')
   } catch (e: any) {
     error.value = e?.data?.error ?? e?.message ?? 'Signup failed'
   } finally {

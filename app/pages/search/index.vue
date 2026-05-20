@@ -1,9 +1,8 @@
 <template>
   <div class="pb-[72px] min-h-screen bg-[#fafafa]">
-    <!-- Header -->
+    <!-- Header search bar -->
     <div class="bg-white px-4 pt-12 pb-4">
-      <h1 class="text-2xl font-semibold text-[#191919] mb-4">Search</h1>
-      <div class="flex items-center gap-3 bg-[#f5f5f5] rounded-full px-4 py-3">
+      <div class="flex items-center gap-3 bg-[#f5f5f5] rounded-full px-4 py-3 border-2 border-brand-100">
         <UIcon name="i-lucide-search" class="w-4 h-4 text-[#969696] shrink-0" />
         <input
           ref="inputRef"
@@ -13,57 +12,88 @@
           class="flex-1 bg-transparent text-sm text-[#191919] placeholder:text-[#97898b] outline-none"
           @input="onInput"
         />
-        <button v-if="query" @click="query = ''; results = []">
+        <button v-if="query" @click="clearQuery">
           <UIcon name="i-lucide-x" class="w-4 h-4 text-[#969696]" />
         </button>
       </div>
     </div>
 
-    <div class="px-4 pt-4">
-      <!-- Recent searches (empty query) -->
-      <div v-if="!query">
-        <div class="flex items-center justify-between mb-3">
-          <p class="text-sm font-medium text-[#1e1e1e]">Recently Searched</p>
-          <button v-if="recent.length" class="text-xs text-brand-500 font-medium" @click="recent = []">Clear All</button>
-        </div>
-        <div v-if="recent.length" class="space-y-3">
-          <button
-            v-for="item in recent"
-            :key="item"
-            class="flex items-center justify-between w-full py-2"
-            @click="query = item; search()"
-          >
-            <div class="flex items-center gap-3">
-              <UIcon name="i-lucide-clock" class="w-4 h-4 text-[#969696]" />
-              <span class="text-sm font-medium text-[#1e1e1e]">{{ item }}</span>
-            </div>
-            <UIcon name="i-lucide-arrow-up-left" class="w-4 h-4 text-[#969696]" />
+    <!-- Empty state: recent searches -->
+    <div v-if="!query" class="px-4 pt-4">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-sm font-semibold text-[#1e1e1e]">Recently Searched</p>
+        <button v-if="recent.length" class="text-xs text-brand-500 font-medium" @click="clearHistory">Clear All</button>
+      </div>
+      <div v-if="recent.length" class="flex flex-wrap gap-2">
+        <div
+          v-for="item in recent"
+          :key="item"
+          class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-3 py-1.5"
+        >
+          <button class="text-sm font-medium text-[#1e1e1e]" @click="setQuery(item)">{{ item }}</button>
+          <button @click="removeRecent(item)">
+            <UIcon name="i-lucide-x" class="w-3 h-3 text-[#969696]" />
           </button>
         </div>
-        <div v-else class="py-10 text-center">
-          <UIcon name="i-lucide-search" class="w-10 h-10 text-gray-200 mx-auto mb-2" />
-          <p class="text-sm text-[#969696]">Search for food or restaurants</p>
+      </div>
+      <div v-else class="py-14 flex flex-col items-center text-center">
+        <UIcon name="i-lucide-search" class="w-12 h-12 text-gray-200 mb-3" />
+        <p class="text-sm text-[#969696]">Search for food or restaurants</p>
+      </div>
+    </div>
+
+    <!-- Typing: suggestions -->
+    <div v-else-if="query.length >= 2 && suggestions.length && !results.length && !searching" class="px-4 pt-2">
+      <button
+        v-for="s in suggestions"
+        :key="s"
+        class="w-full flex items-center gap-3 py-3 border-b border-gray-100 last:border-0"
+        @click="setQuery(s)"
+      >
+        <UIcon name="i-lucide-search" class="w-4 h-4 text-[#969696] shrink-0" />
+        <span class="text-sm text-[#1e1e1e]">{{ s }}</span>
+      </button>
+    </div>
+
+    <!-- Results -->
+    <div v-else class="px-4 pt-4">
+      <!-- Filter pills -->
+      <div class="flex gap-2 mb-4 overflow-x-auto scrollbar-none">
+        <button
+          v-for="f in filters"
+          :key="f"
+          class="shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold border transition-colors"
+          :class="activeFilter === f ? 'bg-brand-500 text-white border-brand-500' : 'bg-white text-[#1e1e1e] border-gray-200'"
+          @click="activeFilter = f"
+        >{{ f }}</button>
+      </div>
+
+      <!-- Result tabs -->
+      <div class="flex gap-3 mb-4 border-b border-gray-100 pb-0">
+        <button
+          v-for="tab in resultTabs"
+          :key="tab"
+          class="pb-2 text-sm font-semibold border-b-2 transition-colors"
+          :class="activeResultTab === tab ? 'border-brand-500 text-brand-500' : 'border-transparent text-[#969696]'"
+          @click="activeResultTab = tab"
+        >{{ tab }}</button>
+      </div>
+
+      <div v-if="searching" class="space-y-3">
+        <USkeleton v-for="i in 4" :key="i" class="h-[220px] rounded-2xl" />
+      </div>
+
+      <div v-else-if="filteredResults.length">
+        <p class="text-xs text-[#969696] mb-3">Showing {{ filteredResults.length }} results for "{{ query }}"</p>
+        <div class="space-y-3">
+          <RestaurantCard v-for="r in filteredResults" :key="r.id" :restaurant="r" />
         </div>
       </div>
 
-      <!-- Search results -->
-      <div v-else>
-        <div v-if="searching" class="space-y-3">
-          <USkeleton v-for="i in 4" :key="i" class="h-[220px] rounded-2xl" />
-        </div>
-
-        <div v-else-if="results.length">
-          <p class="text-xs text-[#969696] mb-3">{{ results.length }} result{{ results.length !== 1 ? 's' : '' }} for "{{ query }}"</p>
-          <div class="space-y-3">
-            <RestaurantCard v-for="r in results" :key="r.id" :restaurant="r" />
-          </div>
-        </div>
-
-        <div v-else class="py-14 flex flex-col items-center text-center">
-          <UIcon name="i-lucide-search-x" class="w-12 h-12 text-gray-300 mb-3" />
-          <p class="text-base font-semibold text-[#191919]">No results found</p>
-          <p class="text-sm text-[#969696] mt-1">Try a different search term</p>
-        </div>
+      <div v-else class="py-14 flex flex-col items-center text-center">
+        <UIcon name="i-lucide-search-x" class="w-12 h-12 text-gray-300 mb-3" />
+        <p class="text-base font-semibold text-[#191919]">No results found</p>
+        <p class="text-sm text-[#969696] mt-1">Try a different search term</p>
       </div>
     </div>
   </div>
@@ -72,39 +102,84 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'auth' })
 
-const route = useRoute()
-const api = useApi()
+const route  = useRoute()
+const api    = useApi()
 
-const query = ref((route.query.q as string) ?? '')
-const results = ref<any[]>([])
-const searching = ref(false)
-const recent = ref<string[]>(['Fried Rice', 'Coconut Rice', 'Jollof Rice'])
+const query         = ref((route.query.q as string) ?? '')
+const results       = ref<any[]>([])
+const suggestions   = ref<string[]>([])
+const searching     = ref(false)
+const activeFilter  = ref('Ratings')
+const activeResultTab = ref('All')
+const filters       = ['Ratings', 'Closest to you', 'Delivery fee']
+const resultTabs    = ['All', 'Meals', 'Vendors']
 
-let debounceTimer: ReturnType<typeof setTimeout>
+// Recent searches from localStorage
+const recent = ref<string[]>(
+  import.meta.client ? JSON.parse(localStorage.getItem('searchHistory') ?? '[]') : []
+)
 
-async function search() {
-  if (!query.value.trim()) { results.value = []; return }
+watch(recent, (v) => {
+  if (import.meta.client) localStorage.setItem('searchHistory', JSON.stringify(v))
+}, { deep: true })
+
+let debounce: ReturnType<typeof setTimeout>
+let suggestDebounce: ReturnType<typeof setTimeout>
+
+function onInput() {
+  clearTimeout(debounce)
+  clearTimeout(suggestDebounce)
+  if (!query.value.trim()) { results.value = []; suggestions.value = []; return }
+
+  // Autocomplete
+  suggestDebounce = setTimeout(async () => {
+    try {
+      const res = await api.getSearchSuggestions(query.value) as any
+      suggestions.value = res.data ?? []
+    } catch { suggestions.value = [] }
+  }, 200)
+
+  // Full search
+  debounce = setTimeout(doSearch, 400)
+}
+
+async function doSearch() {
+  if (!query.value.trim()) return
   searching.value = true
+  suggestions.value = []
   try {
-    const res = await api.getRestaurants() as any
-    const all: any[] = res.data ?? []
-    const q = query.value.toLowerCase()
-    results.value = all.filter(r =>
-      r.name?.toLowerCase().includes(q) || r.description?.toLowerCase().includes(q)
-    )
+    const res = await api.search({ q: query.value, type: 'all' }) as any
+    results.value = res.data ?? (res.restaurants ?? [])
     if (!recent.value.includes(query.value)) {
       recent.value = [query.value, ...recent.value.slice(0, 4)]
     }
-  } catch { results.value = [] }
-  finally { searching.value = false }
+  } catch {
+    // Fallback: local filter
+    try {
+      const r = await api.getRestaurants() as any
+      const q = query.value.toLowerCase()
+      results.value = (r.data ?? []).filter((x: any) => x.name?.toLowerCase().includes(q))
+    } catch { results.value = [] }
+  } finally { searching.value = false }
 }
 
-function onInput() {
-  clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(search, 400)
+const filteredResults = computed(() => {
+  let list = results.value
+  if (activeFilter.value === 'Ratings') list = [...list].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+  if (activeFilter.value === 'Delivery fee') list = [...list].sort((a, b) => (a.delivery_fee ?? 0) - (b.delivery_fee ?? 0))
+  return list
+})
+
+function setQuery(v: string) { query.value = v; doSearch() }
+function clearQuery() { query.value = ''; results.value = []; suggestions.value = [] }
+function removeRecent(v: string) { recent.value = recent.value.filter(r => r !== v) }
+
+async function clearHistory() {
+  recent.value = []
+  try { await api.clearSearchHistory() } catch { /* ok */ }
 }
 
-if (query.value) search()
+if (query.value) doSearch()
 
 useSeoMeta({ title: 'Search — NearbyMe' })
 </script>

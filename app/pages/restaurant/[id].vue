@@ -48,6 +48,25 @@
         <span v-if="!restaurant.is_open" class="ml-auto text-xs font-semibold text-red-500 bg-red-50 px-2 py-1 rounded-full">Closed</span>
       </div>
 
+      <!-- Promo banners -->
+      <div v-if="banners.length" class="overflow-x-auto scrollbar-none px-4 pt-3">
+        <div class="flex gap-3" :style="`width: ${banners.length * 280 + 16}px`">
+          <div
+            v-for="banner in banners"
+            :key="banner.id"
+            class="w-64 shrink-0 h-24 rounded-2xl overflow-hidden relative"
+          >
+            <img v-if="banner.image_url" :src="banner.image_url" class="w-full h-full object-cover" />
+            <div v-else class="w-full h-full bg-gradient-to-r from-brand-500 to-orange-400 flex items-center px-4">
+              <div>
+                <p class="text-white text-xs font-semibold">{{ banner.title }}</p>
+                <p v-if="banner.subtitle" class="text-white/80 text-[10px] mt-0.5">{{ banner.subtitle }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Search in restaurant -->
       <div class="px-4 pt-3">
         <div class="flex items-center gap-3 bg-[#f5f5f5] rounded-full px-4 py-2.5">
@@ -113,6 +132,32 @@
       :item="sheetItem ?? {}"
       :variants="sheetVariants"
     />
+
+    <!-- Vendor Closed modal -->
+    <UModal v-model:open="closedModal">
+      <template #content>
+        <div class="p-6 text-center">
+          <div class="w-16 h-16 rounded-full bg-[#ffe6e6] flex items-center justify-center mx-auto mb-4">
+            <UIcon name="i-lucide-store-x" class="w-8 h-8 text-red-500" />
+          </div>
+          <p class="text-base font-bold text-[#1e1e1e] mb-1">Vendor Currently Closed</p>
+          <p class="text-sm text-[#969696] mb-6 leading-relaxed">
+            {{ restaurant?.name }} is not accepting orders right now.
+            Check back later or browse other open restaurants.
+          </p>
+          <div class="flex gap-3">
+            <button
+              class="flex-1 py-3 rounded-full border border-gray-200 text-sm font-semibold text-[#1e1e1e]"
+              @click="closedModal = false"
+            >Stay Here</button>
+            <button
+              class="flex-1 py-3 rounded-full bg-brand-500 text-white text-sm font-semibold"
+              @click="$router.back()"
+            >Explore Others</button>
+          </div>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -127,17 +172,19 @@ const restaurantId = route.params.id as string
 
 onMounted(() => cartStore.fetchCart())
 
-const menuSearch = ref('')
+const menuSearch    = ref('')
 const activeCategory = ref<string | null>(null)
-const categories = ref<any[]>([])
-const menuItems = ref<any[]>([])
-const itemsLoading = ref(false)
+const categories    = ref<any[]>([])
+const menuItems     = ref<any[]>([])
+const banners       = ref<any[]>([])
+const itemsLoading  = ref(false)
+const closedModal   = ref(false)
 
 // Sheet state
-const sheetOpen = ref(false)
-const sheetItem = ref<any>(null)
+const sheetOpen     = ref(false)
+const sheetItem     = ref<any>(null)
 const sheetVariants = ref<any[]>([])
-const sheetLoading = ref(false)
+const sheetLoading  = ref(false)
 
 const cartCount = computed(() => cartStore.itemCount)
 const cartSubtotal = computed(() => cartStore.subtotal)
@@ -157,14 +204,18 @@ const filteredItems = computed(() => {
 
 watch(() => restaurant.value, async (r) => {
   if (!r) return
+  // Show closed modal if vendor is not open
+  if (r.is_open === false) closedModal.value = true
   itemsLoading.value = true
   try {
-    const [catRes, itemRes] = await Promise.all([
+    const [catRes, itemRes, bannerRes] = await Promise.all([
       api.getCategories(restaurantId) as any,
       api.getMenuItems(restaurantId) as any,
+      api.getRestaurantBanners(restaurantId).catch(() => ({ data: [] })) as any,
     ])
     categories.value = catRes.data ?? []
-    menuItems.value = itemRes.data ?? []
+    menuItems.value  = itemRes.data ?? []
+    banners.value    = bannerRes.data ?? []
   } finally { itemsLoading.value = false }
 }, { immediate: true })
 

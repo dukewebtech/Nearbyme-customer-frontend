@@ -109,7 +109,8 @@ async function handleLogin() {
   try {
     await auth.login(form.email, form.password)
     await cartStore.fetchCart()
-    router.push('/category-select')
+    const locationAsked = import.meta.client && localStorage.getItem('locationAsked')
+    router.push(locationAsked ? '/category-select' : '/location-permission')
   } catch (e: any) {
     error.value = e?.data?.error ?? e?.message ?? 'Invalid credentials'
   } finally {
