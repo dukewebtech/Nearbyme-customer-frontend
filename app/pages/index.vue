@@ -24,29 +24,6 @@
       </NuxtLink>
     </div>
 
-    <!-- Promo banners — hidden when empty, purely additive -->
-    <div v-if="promoBanners.length" class="pt-4 overflow-x-auto scrollbar-none">
-      <div class="flex gap-3 px-4" :style="`width: ${promoBanners.length * 284 + 32}px`">
-        <button
-          v-for="banner in promoBanners"
-          :key="banner.id"
-          class="w-[268px] h-[148px] shrink-0 rounded-2xl overflow-hidden relative shadow-sm active:scale-[0.98] transition-transform"
-          @click="tapBanner(banner)"
-        >
-          <img v-if="banner.image_url" :src="banner.image_url" class="w-full h-full object-cover" />
-          <div v-else class="w-full h-full bg-gradient-to-r from-brand-500 to-orange-400" />
-          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent flex flex-col justify-end p-3">
-            <p class="text-white text-sm font-bold leading-tight line-clamp-1">{{ banner.title }}</p>
-            <p v-if="banner.description" class="text-white/80 text-[11px] mt-0.5 line-clamp-1">{{ banner.description }}</p>
-            <span
-              v-if="banner.type === 'vendor' && banner.vendor"
-              class="mt-1.5 self-start bg-white/20 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full"
-            >{{ banner.vendor.name }}</span>
-          </div>
-        </button>
-      </div>
-    </div>
-
     <div class="px-4 pt-4 space-y-6">
       <!-- Categories -->
       <div>
@@ -73,6 +50,49 @@
             </div>
             <p class="text-[10px] text-[#191919] font-medium text-center max-w-[56px] leading-tight">{{ cat.name }}</p>
           </button>
+        </div>
+      </div>
+
+      <!-- Promo banners carousel — full-width, hidden when empty -->
+      <div
+        v-if="promoBanners.length"
+        class="-mx-4 relative overflow-hidden"
+        @touchstart.passive="onBannerTouchStart"
+        @touchend.passive="onBannerTouchEnd"
+      >
+        <!-- Slides -->
+        <div
+          class="flex transition-transform duration-300 ease-in-out"
+          :style="`transform: translateX(-${activeBanner * 100}%)`"
+        >
+          <button
+            v-for="banner in promoBanners"
+            :key="banner.id"
+            class="w-full shrink-0 h-[220px] relative block"
+            style="min-width:100%"
+            @click="tapBanner(banner)"
+          >
+            <img v-if="banner.image_url" :src="banner.image_url" class="w-full h-full object-cover" />
+            <div v-else class="w-full h-full bg-gradient-to-r from-brand-500 to-orange-400" />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent flex flex-col justify-end px-4 pb-10">
+              <p class="text-white text-base font-bold leading-tight line-clamp-1">{{ banner.title }}</p>
+              <p v-if="banner.description" class="text-white/80 text-xs mt-1 line-clamp-1">{{ banner.description }}</p>
+              <span
+                v-if="banner.type === 'vendor' && banner.vendor"
+                class="mt-2 self-start bg-white/25 text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full"
+              >{{ banner.vendor.name }}</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Pagination dots -->
+        <div v-if="promoBanners.length > 1" class="absolute bottom-3 left-0 right-0 flex items-center justify-center gap-1.5">
+          <span
+            v-for="(_, i) in promoBanners"
+            :key="i"
+            class="h-2 rounded-full transition-all duration-300"
+            :class="i === activeBanner ? 'w-5 bg-brand-500' : 'w-2 bg-white/60'"
+          />
         </div>
       </div>
 
@@ -148,7 +168,34 @@ const hasUnread = computed(() => ((notifData.value as any)?.unread_count ?? 0) >
 
 // ── Promo banners ─────────────────────────────────────────────────────────────
 const { data: bannerData } = await useAsyncData('home-banners', () => api.getBanners() as any, { server: false })
-const promoBanners = computed<any[]>(() => (bannerData.value as any)?.data ?? [])
+const promoBanners  = computed<any[]>(() => (bannerData.value as any)?.data ?? [])
+const activeBanner  = ref(0)
+let bannerTouchX    = 0
+let bannerTimer: ReturnType<typeof setInterval> | null = null
+
+watch(promoBanners, (list) => {
+  if (list.length > 1) {
+    bannerTimer = setInterval(() => {
+      activeBanner.value = (activeBanner.value + 1) % list.length
+    }, 4000)
+  }
+}, { immediate: true })
+
+onUnmounted(() => { if (bannerTimer) clearInterval(bannerTimer) })
+
+function onBannerTouchStart(e: TouchEvent) {
+  bannerTouchX = e.touches[0].clientX
+}
+function onBannerTouchEnd(e: TouchEvent) {
+  const dx = e.changedTouches[0].clientX - bannerTouchX
+  if (Math.abs(dx) < 30) return
+  const total = promoBanners.value.length
+  if (dx < 0) activeBanner.value = (activeBanner.value + 1) % total
+  else activeBanner.value = (activeBanner.value - 1 + total) % total
+  // Reset auto-advance timer on manual swipe
+  if (bannerTimer) { clearInterval(bannerTimer); bannerTimer = null }
+  if (total > 1) bannerTimer = setInterval(() => { activeBanner.value = (activeBanner.value + 1) % total }, 4000)
+}
 
 function tapBanner(banner: any) {
   if (banner.type === 'vendor' && banner.vendor?.id) {
