@@ -82,7 +82,16 @@
               <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between gap-2">
                   <p class="text-sm font-semibold text-[#1e1e1e] truncate">{{ order.restaurants?.name ?? 'Restaurant' }}</p>
-                  <span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full shrink-0">On the way</span>
+                  <!-- Dynamic badge based on actual order + payment state -->
+                  <span
+                    class="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+                    :class="{
+                      'text-amber-600 bg-amber-50': ['accepted','preparing','ready','picked_up'].includes(order.status),
+                      'text-brand-500 bg-[#fdefec]': ['placed','pending'].includes(order.status) && isPaid(order),
+                    }"
+                  >
+                    {{ ['placed','pending'].includes(order.status) && isPaid(order) ? 'Paid · Awaiting vendor' : 'On the way' }}
+                  </span>
                 </div>
                 <p class="text-sm font-bold text-[#1e1e1e] mt-0.5">₦{{ Number(order.total_amount ?? 0).toLocaleString('en-NG') }}</p>
                 <div class="flex items-center justify-between mt-1.5">
@@ -152,8 +161,20 @@ const activeTab = ref<'Pending' | 'Ongoing' | 'Completed'>('Pending')
 const { data, pending, refresh } = await useAsyncData('my-orders', () => api.getOrders() as any, { server: false })
 const orders = computed<any[]>(() => (data.value as any)?.data ?? [])
 
-const pendingOrders   = computed(() => orders.value.filter(o => ['placed', 'pending'].includes(o.status)))
-const ongoingOrders   = computed(() => orders.value.filter(o => ['accepted', 'preparing', 'ready', 'picked_up'].includes(o.status)))
+// An order is paid when at least one of its payment records is 'completed'
+const isPaid = (o: any) => (o.payments ?? []).some((p: any) => p.status === 'completed')
+
+// Pending = placed/pending with NO completed payment (genuinely awaiting payment)
+const pendingOrders = computed(() =>
+  orders.value.filter(o => ['placed', 'pending'].includes(o.status) && !isPaid(o))
+)
+// Ongoing = accepted/preparing/ready/picked_up OR placed but already paid (awaiting vendor)
+const ongoingOrders = computed(() =>
+  orders.value.filter(o =>
+    ['accepted', 'preparing', 'ready', 'picked_up'].includes(o.status) ||
+    (['placed', 'pending'].includes(o.status) && isPaid(o))
+  )
+)
 const completedOrders = computed(() => orders.value.filter(o => ['delivered', 'cancelled'].includes(o.status)))
 
 const groupedCompleted = computed(() => {
