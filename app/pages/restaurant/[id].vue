@@ -113,8 +113,11 @@
             v-for="item in filteredItems"
             :key="item.id"
             :item="item"
+            :is-favorited="mealFavMap[item.id]?.favorited ?? false"
+            :favorite-id="mealFavMap[item.id]?.favId ?? null"
             @open="openSheet(item)"
             @add="openSheet(item)"
+            @favorite-changed="onMealFavoriteChanged"
           />
         </div>
         <div v-else class="py-10 text-center text-[#969696] text-sm">
@@ -181,7 +184,7 @@ const cartStore = useCartStore()
 
 const restaurantId = route.params.id as string
 
-onMounted(() => cartStore.fetchCart())
+onMounted(() => { cartStore.fetchCart(); loadMealFavorites() })
 
 const menuSearch    = ref('')
 const activeCategory = ref<string | null>(null)
@@ -190,6 +193,23 @@ const menuItems     = ref<any[]>([])
 const banners       = ref<any[]>([])
 const itemsLoading  = ref(false)
 const closedModal   = ref(false)
+
+// Meal favorites map { menuItemId → { favorited, favId } }
+const mealFavMap = reactive<Record<string, { favorited: boolean; favId: string | null }>>({})
+
+async function loadMealFavorites() {
+  try {
+    const res = await api.getFavorites() as any
+    const list: any[] = res.data ?? []
+    list
+      .filter(f => f.type === 'meal' && f.menu_item_id)
+      .forEach(f => { mealFavMap[f.menu_item_id] = { favorited: true, favId: f.id } })
+  } catch { /* silent */ }
+}
+
+function onMealFavoriteChanged(itemId: string, nowFavorited: boolean, favId: string | null) {
+  mealFavMap[itemId] = { favorited: nowFavorited, favId }
+}
 
 // Sheet state
 const sheetOpen     = ref(false)
