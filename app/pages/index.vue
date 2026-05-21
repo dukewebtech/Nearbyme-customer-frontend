@@ -24,6 +24,29 @@
       </NuxtLink>
     </div>
 
+    <!-- Promo banners — hidden when empty, purely additive -->
+    <div v-if="promoBanners.length" class="pt-4 overflow-x-auto scrollbar-none">
+      <div class="flex gap-3 px-4" :style="`width: ${promoBanners.length * 284 + 32}px`">
+        <button
+          v-for="banner in promoBanners"
+          :key="banner.id"
+          class="w-[268px] h-[148px] shrink-0 rounded-2xl overflow-hidden relative shadow-sm active:scale-[0.98] transition-transform"
+          @click="tapBanner(banner)"
+        >
+          <img v-if="banner.image_url" :src="banner.image_url" class="w-full h-full object-cover" />
+          <div v-else class="w-full h-full bg-gradient-to-r from-brand-500 to-orange-400" />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent flex flex-col justify-end p-3">
+            <p class="text-white text-sm font-bold leading-tight line-clamp-1">{{ banner.title }}</p>
+            <p v-if="banner.description" class="text-white/80 text-[11px] mt-0.5 line-clamp-1">{{ banner.description }}</p>
+            <span
+              v-if="banner.type === 'vendor' && banner.vendor"
+              class="mt-1.5 self-start bg-white/20 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full"
+            >{{ banner.vendor.name }}</span>
+          </div>
+        </button>
+      </div>
+    </div>
+
     <div class="px-4 pt-4 space-y-6">
       <!-- Categories -->
       <div>
@@ -122,6 +145,18 @@ const auth = useAuthStore()
 // Unread notification badge (lightweight — fetches count only)
 const { data: notifData } = await useAsyncData('notif-badge', () => api.getNotifications({ limit: 1 }) as any, { server: false })
 const hasUnread = computed(() => ((notifData.value as any)?.unread_count ?? 0) > 0)
+
+// ── Promo banners ─────────────────────────────────────────────────────────────
+const { data: bannerData } = await useAsyncData('home-banners', () => api.getBanners() as any, { server: false })
+const promoBanners = computed<any[]>(() => (bannerData.value as any)?.data ?? [])
+
+function tapBanner(banner: any) {
+  if (banner.type === 'vendor' && banner.vendor?.id) {
+    navigateTo(`/restaurant/${banner.vendor.id}`)
+  } else if (banner.type === 'external' && banner.external_url) {
+    window.open(banner.external_url, '_blank', 'noopener')
+  }
+}
 
 // ── Name ──────────────────────────────────────────────────────────────────────
 const firstName = computed(() => {

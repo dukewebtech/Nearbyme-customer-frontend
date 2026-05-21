@@ -44,6 +44,7 @@ export const useApi = () => {
   const getRestaurant        = (id: string) => get(`/restaurants/${id}`)
   const getPharmacies        = (params?: Record<string, any>) => get('/restaurants', { store_type: 'pharmacy', ...params })
   const getShops             = (params?: Record<string, any>) => get('/restaurants', { store_type: 'shop', ...params })
+  const getBanners            = () => get('/banners')
   const getRestaurantBanners = (rid: string) => get(`/restaurants/${rid}/banners`)
   const getRestaurantReviews = (rid: string) => get(`/restaurants/${rid}/reviews`)
 
@@ -114,7 +115,7 @@ export const useApi = () => {
     getNotificationPrefs, updateNotificationPrefs, changePassword,
     getAddresses, createAddress, updateAddress, deleteAddress,
     getRestaurants, getRestaurant, getPharmacies, getShops,
-    getRestaurantBanners, getRestaurantReviews,
+    getBanners, getRestaurantBanners, getRestaurantReviews,
     getGlobalCategories, getCategories, getMenuItems, getMenuItem,
     search, getSearchSuggestions, getSearchHistory, clearSearchHistory,
     getFavorites, addFavorite, removeFavorite,
