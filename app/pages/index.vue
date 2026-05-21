@@ -13,7 +13,7 @@
         </div>
         <NuxtLink to="/notifications" class="w-10 h-10 rounded-full bg-[#f5f5f5] flex items-center justify-center relative">
           <UIcon name="i-lucide-bell" class="w-5 h-5 text-[#191919]" />
-          <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-500 rounded-full" />
+          <span v-if="hasUnread" class="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-500 rounded-full" />
         </NuxtLink>
       </div>
 
@@ -118,6 +118,10 @@ definePageMeta({ middleware: 'auth' })
 
 const api  = useApi()
 const auth = useAuthStore()
+
+// Unread notification badge (lightweight — fetches count only)
+const { data: notifData } = await useAsyncData('notif-badge', () => api.getNotifications({ limit: 1 }) as any, { server: false })
+const hasUnread = computed(() => ((notifData.value as any)?.unread_count ?? 0) > 0)
 
 // ── Name ──────────────────────────────────────────────────────────────────────
 const firstName = computed(() => {

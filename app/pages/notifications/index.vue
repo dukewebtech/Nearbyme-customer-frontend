@@ -81,18 +81,14 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'auth' })
 
-const api = useApi()
-
-const { data, pending, refresh } = await useAsyncData('notifications', () => api.getNotifications() as any, { server: false })
-const notifications = computed<any[]>(() => (data.value as any)?.data ?? [])
-const unreadCount   = computed(() => notifications.value.filter(n => !(n.is_read || n.read)).length)
+const { notifications, unreadCount, pending, markRead } = useNotifications()
 
 const now = new Date()
 const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
 const weekStart  = todayStart - 6 * 86400000
 
-const todayGroup = computed(() => notifications.value.filter(n => new Date(n.created_at ?? Date.now()).getTime() >= todayStart))
-const weekGroup  = computed(() => notifications.value.filter(n => { const t = new Date(n.created_at ?? Date.now()).getTime(); return t < todayStart && t >= weekStart }))
+const todayGroup = computed(() => notifications.value.filter((n: any) => new Date(n.created_at ?? Date.now()).getTime() >= todayStart))
+const weekGroup  = computed(() => notifications.value.filter((n: any) => { const t = new Date(n.created_at ?? Date.now()).getTime(); return t < todayStart && t >= weekStart }))
 
 function notifStyle(n: any) {
   const type = (n.type ?? n.title ?? '').toLowerCase()
@@ -120,19 +116,14 @@ function timeAgo(iso: string): string {
 
 async function tapNotif(n: any) {
   if (!(n.is_read || n.read)) {
-    try { await api.markNotificationRead(n.id) } catch { /* ok */ }
-    n.is_read = true
+    await markRead(n.id)
   }
-  if (n.order_id) navigateTo(`/orders/${n.order_id}`)
+  const orderId = n.order_id ?? n.data?.order_id
+  if (orderId) navigateTo(`/orders/${orderId}`)
 }
 
 async function markAll() {
-  try {
-    await api.markNotificationRead('all')
-    await refresh()
-  } catch {
-    notifications.value.forEach((n: any) => { n.is_read = true; n.read = true })
-  }
+  await markRead('all')
 }
 
 useSeoMeta({ title: 'Notifications — NearbyMe' })
