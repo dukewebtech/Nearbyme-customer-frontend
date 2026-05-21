@@ -43,7 +43,7 @@
     </div>
 
     <!-- Typing: suggestions -->
-    <div v-else-if="query.length >= 2 && suggestions.length && !results.length && !searching" class="px-4 pt-2">
+    <div v-else-if="query.length >= 2 && suggestions.length && !totalCount && !searching" class="px-4 pt-2">
       <button
         v-for="s in suggestions"
         :key="s"
@@ -79,17 +79,45 @@
         >{{ tab }}</button>
       </div>
 
+      <!-- Loading -->
       <div v-if="searching" class="space-y-3">
         <USkeleton v-for="i in 4" :key="i" class="h-[220px] rounded-2xl" />
       </div>
 
-      <div v-else-if="filteredResults.length">
-        <p class="text-xs text-[#969696] mb-3">Showing {{ filteredResults.length }} results for "{{ query }}"</p>
-        <div class="space-y-3">
-          <RestaurantCard v-for="r in filteredResults" :key="r.id" :restaurant="r" />
-        </div>
-      </div>
+      <!-- Results content -->
+      <template v-else-if="totalCount">
+        <p class="text-xs text-[#969696] mb-3">Showing {{ totalCount }} results for "{{ query }}"</p>
 
+        <!-- Vendors -->
+        <div v-if="(activeResultTab === 'All' || activeResultTab === 'Vendors') && filteredVendors.length" class="space-y-3 mb-4">
+          <p v-if="activeResultTab === 'All' && filteredMeals.length" class="text-xs font-semibold text-[#969696] uppercase tracking-wide">Restaurants</p>
+          <RestaurantCard v-for="r in filteredVendors" :key="r.id" :restaurant="r" />
+        </div>
+
+        <!-- Meals -->
+        <div v-if="(activeResultTab === 'All' || activeResultTab === 'Meals') && filteredMeals.length" class="space-y-2">
+          <p v-if="activeResultTab === 'All' && filteredVendors.length" class="text-xs font-semibold text-[#969696] uppercase tracking-wide mb-2">Meals</p>
+          <NuxtLink
+            v-for="m in filteredMeals"
+            :key="m.id"
+            :to="`/restaurant/${m.restaurants?.id}`"
+            class="flex items-center gap-3 bg-white rounded-2xl p-3"
+          >
+            <div class="w-16 h-16 rounded-xl bg-[#f5e9e7] shrink-0 overflow-hidden flex items-center justify-center">
+              <img v-if="m.image_url" :src="m.image_url" class="w-full h-full object-cover" />
+              <UIcon v-else name="i-lucide-utensils" class="w-6 h-6 text-brand-300" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-[#1e1e1e] truncate">{{ m.name }}</p>
+              <p class="text-xs text-[#969696] truncate mt-0.5">{{ m.restaurants?.name }}</p>
+              <p class="text-sm font-bold text-brand-500 mt-1">₦{{ Number(m.price ?? 0).toLocaleString('en-NG') }}</p>
+            </div>
+            <UIcon name="i-lucide-chevron-right" class="w-4 h-4 text-[#969696] shrink-0" />
+          </NuxtLink>
+        </div>
+      </template>
+
+      <!-- No results -->
       <div v-else class="py-14 flex flex-col items-center text-center">
         <UIcon name="i-lucide-search-x" class="w-12 h-12 text-gray-300 mb-3" />
         <p class="text-base font-semibold text-[#191919]">No results found</p>
@@ -105,14 +133,16 @@ definePageMeta({ middleware: 'auth' })
 const route  = useRoute()
 const api    = useApi()
 
-const query         = ref((route.query.q as string) ?? '')
-const results       = ref<any[]>([])
-const suggestions   = ref<string[]>([])
-const searching     = ref(false)
-const activeFilter  = ref('Ratings')
+const query           = ref((route.query.q as string) ?? '')
+const vendors         = ref<any[]>([])
+const meals           = ref<any[]>([])
+const suggestions     = ref<string[]>([])
+const searching       = ref(false)
+const activeFilter    = ref('Ratings')
 const activeResultTab = ref('All')
-const filters       = ['Ratings', 'Closest to you', 'Delivery fee']
-const resultTabs    = ['All', 'Meals', 'Vendors']
+const filters         = ['Ratings', 'Closest to you', 'Delivery fee']
+const resultTabs      = ['All', 'Meals', 'Vendors']
+const totalCount      = computed(() => vendors.value.length + meals.value.length)
 
 // Recent searches from localStorage
 const recent = ref<string[]>(
@@ -129,7 +159,7 @@ let suggestDebounce: ReturnType<typeof setTimeout>
 function onInput() {
   clearTimeout(debounce)
   clearTimeout(suggestDebounce)
-  if (!query.value.trim()) { results.value = []; suggestions.value = []; return }
+  if (!query.value.trim()) { vendors.value = []; meals.value = []; suggestions.value = []; return }
 
   // Autocomplete
   suggestDebounce = setTimeout(async () => {
@@ -149,29 +179,41 @@ async function doSearch() {
   suggestions.value = []
   try {
     const res = await api.search({ q: query.value, type: 'all' }) as any
-    results.value = res.data ?? (res.restaurants ?? [])
+    // API returns { data: { vendors: [], meals: [] } }
+    const d = res.data ?? {}
+    vendors.value = Array.isArray(d.vendors) ? d.vendors : (Array.isArray(d) ? d : [])
+    meals.value   = Array.isArray(d.meals)   ? d.meals   : []
     if (!recent.value.includes(query.value)) {
       recent.value = [query.value, ...recent.value.slice(0, 4)]
     }
   } catch {
-    // Fallback: local filter
+    // Fallback: load all restaurants and filter by name
     try {
       const r = await api.getRestaurants() as any
       const q = query.value.toLowerCase()
-      results.value = (r.data ?? []).filter((x: any) => x.name?.toLowerCase().includes(q))
-    } catch { results.value = [] }
+      vendors.value = (r.data ?? []).filter((x: any) => x.name?.toLowerCase().includes(q))
+      meals.value   = []
+    } catch { vendors.value = []; meals.value = [] }
   } finally { searching.value = false }
 }
 
-const filteredResults = computed(() => {
-  let list = results.value
-  if (activeFilter.value === 'Ratings') list = [...list].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
-  if (activeFilter.value === 'Delivery fee') list = [...list].sort((a, b) => (a.delivery_fee ?? 0) - (b.delivery_fee ?? 0))
+const filteredVendors = computed(() => {
+  let list = [...vendors.value]
+  if (activeFilter.value === 'Ratings')      list = list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+  if (activeFilter.value === 'Delivery fee') list = list.sort((a, b) => (a.delivery_fee ?? 0) - (b.delivery_fee ?? 0))
   return list
 })
 
+const filteredMeals = computed(() => [...meals.value])
+
+const hasResults = computed(() => {
+  if (activeResultTab.value === 'Vendors') return filteredVendors.value.length > 0
+  if (activeResultTab.value === 'Meals')   return filteredMeals.value.length > 0
+  return filteredVendors.value.length > 0 || filteredMeals.value.length > 0
+})
+
 function setQuery(v: string) { query.value = v; doSearch() }
-function clearQuery() { query.value = ''; results.value = []; suggestions.value = [] }
+function clearQuery() { query.value = ''; vendors.value = []; meals.value = []; suggestions.value = [] }
 function removeRecent(v: string) { recent.value = recent.value.filter(r => r !== v) }
 
 async function clearHistory() {
