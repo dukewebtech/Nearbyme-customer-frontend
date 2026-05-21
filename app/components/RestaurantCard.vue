@@ -85,7 +85,7 @@ async function toggleFav() {
       if (!currentFavId) {
         const list = await api.getFavorites() as any
         const match = (list.data ?? []).find(
-          (f: any) => f.type === 'vendor' && f.restaurant_id === props.restaurant.id
+          (f: any) => f.type === 'vendor' && f.restaurants?.id === props.restaurant.id
         )
         currentFavId = match?.id ?? null
       }

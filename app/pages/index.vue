@@ -204,9 +204,9 @@ async function loadFavorites() {
     const res = await api.getFavorites() as any
     const list: any[] = res.data ?? []
     list
-      .filter(f => f.type === 'vendor' && f.restaurant_id)
+      .filter(f => f.type === 'vendor' && f.restaurants?.id)
       .forEach(f => {
-        favMap[f.restaurant_id] = { favorited: true, favId: f.id }
+        favMap[f.restaurants.id] = { favorited: true, favId: f.id }
       })
   } catch { /* silent — favorites just won't be pre-checked */ }
 }

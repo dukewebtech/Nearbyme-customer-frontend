@@ -73,7 +73,7 @@
           <NuxtLink
             v-for="fav in vendorFavs"
             :key="fav.id"
-            :to="`/restaurant/${fav.restaurant_id}`"
+            :to="`/restaurant/${fav.restaurants?.id}`"
             class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 block"
           >
             <div class="h-24 bg-[#f5e9e7] relative overflow-hidden">

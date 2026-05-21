@@ -215,9 +215,9 @@ async function loadFavorites() {
     const res = await api.getFavorites() as any
     const list: any[] = res.data ?? []
     list
-      .filter(f => f.type === 'meal' && f.menu_item_id)
-      .forEach(f => { mealFavMap[f.menu_item_id] = { favorited: true, favId: f.id } })
-    const vendorMatch = list.find(f => f.type === 'vendor' && f.restaurant_id === restaurantId)
+      .filter(f => f.type === 'meal' && f.menu_items?.id)
+      .forEach(f => { mealFavMap[f.menu_items.id] = { favorited: true, favId: f.id } })
+    const vendorMatch = list.find(f => f.type === 'vendor' && f.restaurants?.id === restaurantId)
     if (vendorMatch) vendorFav.value = { favorited: true, favId: vendorMatch.id }
   } catch { /* silent */ }
 }
