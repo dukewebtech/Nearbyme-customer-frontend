@@ -1,7 +1,18 @@
 <template>
   <div class="pb-[72px] min-h-screen bg-[#fafafa]">
-    <div v-if="pending" class="flex justify-center pt-20">
+    <div v-if="pending || (!restaurant && !fetchError)" class="flex justify-center pt-20">
       <UIcon name="i-lucide-loader-circle" class="w-8 h-8 text-brand-500 animate-spin" />
+    </div>
+
+    <div v-else-if="fetchError && !restaurant" class="flex flex-col items-center justify-center py-24 px-6 text-center">
+      <div class="w-16 h-16 rounded-full bg-[#fce7e3] flex items-center justify-center mb-4">
+        <UIcon name="i-lucide-wifi-off" class="w-8 h-8 text-brand-500" />
+      </div>
+      <p class="text-base font-semibold text-[#1e1e1e]">Could not load restaurant</p>
+      <p class="text-sm text-[#969696] mt-1 mb-6">Check your connection and try again</p>
+      <button class="bg-brand-500 text-white text-sm font-semibold px-8 py-3.5 rounded-full" @click="refresh()">
+        Retry
+      </button>
     </div>
 
     <template v-else-if="restaurant">
@@ -189,8 +200,50 @@ const sheetLoading  = ref(false)
 const cartCount = computed(() => cartStore.itemCount)
 const cartSubtotal = computed(() => cartStore.subtotal)
 
-const { data, pending } = await useAsyncData(`restaurant-${restaurantId}`, () => api.getRestaurant(restaurantId) as any, { server: false })
+const { data, pending, error: fetchError, refresh } = await useAsyncData(
+  `restaurant-${restaurantId}`,
+  () => api.getRestaurant(restaurantId) as any,
+  { server: false }
+)
 const restaurant = computed(() => (data.value as any)?.data)
+
+// Use menu_categories embedded in the restaurant response — no extra API calls needed
+watch(() => restaurant.value, async (r) => {
+  if (!r) return
+  if (r.is_open === false) closedModal.value = true
+
+  // Build categories and flat menu items from embedded data
+  const embedded: any[] = r.menu_categories ?? []
+  if (embedded.length) {
+    categories.value = embedded.map((c: any) => ({ id: c.id, name: c.name }))
+    menuItems.value  = embedded.flatMap((c: any) =>
+      (c.menu_items ?? []).map((item: any) => ({ ...item, category_id: c.id }))
+    )
+    itemsLoading.value = false
+    // Still fetch banners in background (lightweight)
+    api.getRestaurantBanners(restaurantId).then((res: any) => {
+      banners.value = res.data ?? []
+    }).catch(() => {})
+    return
+  }
+
+  // Fallback: fetch separately if not embedded
+  itemsLoading.value = true
+  try {
+    const [catRes, itemRes] = await Promise.all([
+      api.getCategories(restaurantId) as any,
+      api.getMenuItems(restaurantId) as any,
+    ])
+    categories.value = catRes.data ?? []
+    menuItems.value  = itemRes.data ?? []
+    api.getRestaurantBanners(restaurantId).then((res: any) => {
+      banners.value = res.data ?? []
+    }).catch(() => {})
+  } catch {
+    menuItems.value = []
+    categories.value = []
+  } finally { itemsLoading.value = false }
+}, { immediate: true })
 
 const filteredItems = computed(() => {
   let items = menuItems.value.filter((i: any) => i.is_available !== false)
@@ -201,23 +254,6 @@ const filteredItems = computed(() => {
   }
   return items
 })
-
-watch(() => restaurant.value, async (r) => {
-  if (!r) return
-  // Show closed modal if vendor is not open
-  if (r.is_open === false) closedModal.value = true
-  itemsLoading.value = true
-  try {
-    const [catRes, itemRes, bannerRes] = await Promise.all([
-      api.getCategories(restaurantId) as any,
-      api.getMenuItems(restaurantId) as any,
-      api.getRestaurantBanners(restaurantId).catch(() => ({ data: [] })) as any,
-    ])
-    categories.value = catRes.data ?? []
-    menuItems.value  = itemRes.data ?? []
-    banners.value    = bannerRes.data ?? []
-  } finally { itemsLoading.value = false }
-}, { immediate: true })
 
 async function openSheet(item: any) {
   sheetItem.value = item
