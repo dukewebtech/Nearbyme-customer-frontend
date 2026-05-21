@@ -23,7 +23,8 @@
           <UIcon
             name="i-lucide-heart"
             class="w-3.5 h-3.5 transition-colors"
-            :class="isFav ? 'text-brand-500 fill-brand-500' : 'text-[#969696]'"
+            :class="isFav ? 'text-brand-500' : 'text-[#969696]'"
+            :style="isFav ? 'fill: #E85D2F' : ''"
           />
         </button>
       </div>
@@ -69,12 +70,20 @@ async function toggleFav() {
   isFav.value = !wasLiked // optimistic
 
   try {
-    if (wasLiked && currentFavId) {
-      await api.removeFavorite(currentFavId)
-      currentFavId = null
+    if (wasLiked) {
+      // Resolve fav ID if not cached
+      if (!currentFavId) {
+        const list = await api.getFavorites() as any
+        const match = (list.data ?? []).find((f: any) => f.type === 'meal' && f.menu_item_id === props.item.id)
+        currentFavId = match?.id ?? null
+      }
+      if (currentFavId) {
+        await api.removeFavorite(currentFavId)
+        currentFavId = null
+      }
     } else {
       const res = await api.addFavorite({ type: 'meal', menu_item_id: props.item.id }) as any
-      currentFavId = res.data?.id ?? null
+      currentFavId = res.data?.id ?? res.id ?? null
     }
     emit('favoriteChanged', props.item.id, isFav.value, currentFavId)
   } catch {

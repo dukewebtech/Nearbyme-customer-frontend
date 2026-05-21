@@ -7,14 +7,16 @@
 
       <!-- Favourite -->
       <button
-        class="absolute top-3 right-3 w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm"
-        :class="{ 'opacity-60 pointer-events-none': toggling }"
-        @click.prevent="toggleFav"
+        class="absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center shadow-sm transition-colors"
+        :class="isFav ? 'bg-[#fce7e3]' : 'bg-white'"
+        :disabled="toggling"
+        @click.stop="toggleFav"
       >
         <UIcon
           name="i-lucide-heart"
           class="w-4 h-4 transition-colors"
-          :class="isFav ? 'text-brand-500 fill-brand-500' : 'text-[#969696]'"
+          :class="isFav ? 'text-brand-500' : 'text-[#969696]'"
+          :style="isFav ? 'fill: #E85D2F' : ''"
         />
       </button>
 
@@ -77,12 +79,20 @@ async function toggleFav() {
   isFav.value = !wasLiked // optimistic
 
   try {
-    if (wasLiked && currentFavId) {
-      await api.removeFavorite(currentFavId)
-      currentFavId = null
+    if (wasLiked) {
+      // Resolve fav ID if not cached
+      if (!currentFavId) {
+        const list = await api.getFavorites() as any
+        const match = (list.data ?? []).find((f: any) => f.type === 'vendor' && f.restaurant_id === props.restaurant.id)
+        currentFavId = match?.id ?? null
+      }
+      if (currentFavId) {
+        await api.removeFavorite(currentFavId)
+        currentFavId = null
+      }
     } else {
       const res = await api.addFavorite({ type: 'vendor', restaurant_id: props.restaurant.id }) as any
-      currentFavId = res.data?.id ?? null
+      currentFavId = res.data?.id ?? res.id ?? null
     }
     emit('favoriteChanged', props.restaurant.id, isFav.value, currentFavId)
   } catch {
