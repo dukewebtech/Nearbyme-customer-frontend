@@ -27,8 +27,17 @@
             <UIcon name="i-lucide-arrow-left" class="w-5 h-5 text-[#1e1e1e]" />
           </button>
           <div class="flex gap-2">
-            <button class="w-9 h-9 rounded-full bg-white/90 flex items-center justify-center">
-              <UIcon name="i-lucide-heart" class="w-4 h-4 text-[#969696]" />
+            <button
+              class="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
+              :class="vendorFav.favorited ? 'bg-[#fce7e3]' : 'bg-white/90'"
+              :disabled="vendorToggling"
+              @click="toggleVendorFav"
+            >
+              <UIcon
+                name="i-lucide-heart"
+                class="w-4 h-4 transition-colors"
+                :class="[vendorFav.favorited ? 'text-brand-500 fav-active' : 'text-[#969696]']"
+              />
             </button>
             <button class="w-9 h-9 rounded-full bg-white/90 flex items-center justify-center">
               <UIcon name="i-lucide-share-2" class="w-4 h-4 text-[#969696]" />
@@ -184,7 +193,7 @@ const cartStore = useCartStore()
 
 const restaurantId = route.params.id as string
 
-onMounted(() => { cartStore.fetchCart(); loadMealFavorites() })
+onMounted(() => { cartStore.fetchCart(); loadFavorites() })
 
 const menuSearch    = ref('')
 const activeCategory = ref<string | null>(null)
@@ -197,14 +206,40 @@ const closedModal   = ref(false)
 // Meal favorites map { menuItemId → { favorited, favId } }
 const mealFavMap = reactive<Record<string, { favorited: boolean; favId: string | null }>>({})
 
-async function loadMealFavorites() {
+// Vendor favorite for this restaurant
+const vendorFav = ref<{ favorited: boolean; favId: string | null }>({ favorited: false, favId: null })
+const vendorToggling = ref(false)
+
+async function loadFavorites() {
   try {
     const res = await api.getFavorites() as any
     const list: any[] = res.data ?? []
     list
       .filter(f => f.type === 'meal' && f.menu_item_id)
       .forEach(f => { mealFavMap[f.menu_item_id] = { favorited: true, favId: f.id } })
+    const vendorMatch = list.find(f => f.type === 'vendor' && f.restaurant_id === restaurantId)
+    if (vendorMatch) vendorFav.value = { favorited: true, favId: vendorMatch.id }
   } catch { /* silent */ }
+}
+
+async function toggleVendorFav() {
+  if (vendorToggling.value) return
+  vendorToggling.value = true
+  const wasLiked = vendorFav.value.favorited
+  vendorFav.value = { ...vendorFav.value, favorited: !wasLiked }
+  try {
+    if (wasLiked) {
+      const favId = vendorFav.value.favId ?? null
+      const id = favId || ((await api.getFavorites() as any).data ?? [])
+        .find((f: any) => f.type === 'vendor' && f.restaurant_id === restaurantId)?.id
+      if (id) { await api.removeFavorite(id); vendorFav.value = { favorited: false, favId: null } }
+    } else {
+      const res = await api.addFavorite({ type: 'vendor', restaurant_id: restaurantId }) as any
+      vendorFav.value = { favorited: true, favId: res.data?.id ?? res.id ?? null }
+    }
+  } catch {
+    vendorFav.value = { favorited: wasLiked, favId: vendorFav.value.favId }
+  } finally { vendorToggling.value = false }
 }
 
 function onMealFavoriteChanged(itemId: string, nowFavorited: boolean, favId: string | null) {
@@ -301,4 +336,9 @@ useSeoMeta({ title: `${restaurant.value?.name ?? 'Restaurant'} — NearbyMe` })
 
 .slide-up-enter-active, .slide-up-leave-active { transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s; }
 .slide-up-enter-from, .slide-up-leave-to { transform: translateY(100%); opacity: 0; }
+
+:deep(.fav-active path) {
+  fill: #E85D2F;
+  stroke: #E85D2F;
+}
 </style>

@@ -49,7 +49,7 @@
               <img v-if="fav.menu_items?.image_url" :src="fav.menu_items.image_url" class="w-full h-full object-cover" />
               <UIcon v-else name="i-lucide-utensils" class="absolute inset-0 m-auto w-10 h-10 text-brand-300" />
               <button class="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center shadow" @click="removeFav(fav.id)">
-                <UIcon name="i-lucide-heart" class="w-4 h-4 text-brand-500 fill-brand-500" />
+                <UIcon name="i-lucide-heart" class="w-4 h-4 text-brand-500 fav-active" />
               </button>
             </div>
             <div class="p-2.5">
@@ -79,8 +79,8 @@
             <div class="h-24 bg-[#f5e9e7] relative overflow-hidden">
               <img v-if="fav.restaurants?.image_url" :src="fav.restaurants.image_url" class="w-full h-full object-cover" />
               <UIcon v-else name="i-lucide-store" class="absolute inset-0 m-auto w-8 h-8 text-brand-300" />
-              <button class="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 flex items-center justify-center shadow" @click.prevent="removeFav(fav.id)">
-                <UIcon name="i-lucide-heart" class="w-3.5 h-3.5 text-brand-500 fill-brand-500" />
+              <button class="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 flex items-center justify-center shadow" @click.stop.prevent="removeFav(fav.id)">
+                <UIcon name="i-lucide-heart" class="w-3.5 h-3.5 text-brand-500 fav-active" />
               </button>
             </div>
             <div class="p-2.5">
@@ -121,3 +121,10 @@ async function removeFav(id: string) {
 
 useSeoMeta({ title: 'Favorites — NearbyMe' })
 </script>
+
+<style scoped>
+:deep(.fav-active path) {
+  fill: #E85D2F;
+  stroke: #E85D2F;
+}
+</style>
