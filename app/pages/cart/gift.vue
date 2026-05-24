@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-white max-w-[390px] mx-auto pb-32">
+  <div class="min-h-screen bg-white max-w-[390px] mx-auto pb-48">
     <!-- Header -->
     <div class="px-4 pt-12 pb-2">
       <button class="w-9 h-9 rounded-full bg-[#f5f5f5] flex items-center justify-center mb-4" @click="$router.back()">
@@ -109,7 +109,7 @@
   </div>
 
   <!-- Fixed bottom bar -->
-  <div class="fixed bottom-0 left-0 right-0 max-w-[390px] mx-auto bg-white border-t border-gray-100 px-4 pt-4 pb-8">
+  <div class="fixed bottom-20 left-0 right-0 max-w-[390px] mx-auto bg-white border-t border-gray-100 px-4 pt-4 pb-4">
     <button
       class="w-full py-4 rounded-full bg-brand-500 text-white text-base font-semibold active:scale-[0.98] transition-transform"
       @click="proceed"
