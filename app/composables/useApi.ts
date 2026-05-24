@@ -95,7 +95,9 @@ export const useApi = () => {
   const reviewRider      = (id: string, body: any) => post(`/riders/${id}/reviews`, body)
 
   // Home sections (admin-curated rows)
-  const getHomeSections = () => get('/home-sections')
+  const getHomeSections   = () => get('/home-sections')
+  const getFeaturedDishes = (limit = 10) => get('/featured-dishes', { limit })
+  const getFeaturedRestaurants = () => get('/restaurants', { is_featured: true, store_type: 'restaurant' })
 
   // Notifications
   const getNotifications     = (params?: Record<string, any>) => get('/notifications', params)
@@ -128,6 +130,6 @@ export const useApi = () => {
     reviewRestaurant, reviewRider,
     getNotifications, markNotificationRead,
     getBeneficiaries, createBeneficiary, deleteBeneficiary, getPaymentMethods,
-    getHomeSections,
+    getHomeSections, getFeaturedDishes, getFeaturedRestaurants,
   }
 }

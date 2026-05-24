@@ -96,6 +96,55 @@
         </div>
       </div>
 
+      <!-- Featured Dishes — shown when admin marks menu items as featured -->
+      <div v-if="featuredDishes.length">
+        <p class="text-base font-semibold text-[#191919] mb-3">Featured Dishes</p>
+        <div class="flex gap-3 overflow-x-auto scrollbar-none pb-1">
+          <NuxtLink
+            v-for="dish in featuredDishes"
+            :key="dish.id"
+            :to="`/restaurant/${dish.restaurants?.id}`"
+            class="shrink-0 w-40 bg-white rounded-2xl overflow-hidden shadow-sm"
+          >
+            <div class="w-full h-28 bg-[#f5e9e7] flex items-center justify-center">
+              <UIcon v-if="!dish.image_url" name="i-lucide-utensils" class="w-10 h-10 text-brand-300" />
+              <img v-else :src="dish.image_url" class="w-full h-full object-cover" />
+            </div>
+            <div class="p-2.5">
+              <p class="text-xs font-semibold text-[#191919] truncate">{{ dish.name }}</p>
+              <p class="text-[10px] text-[#969696] truncate mt-0.5">{{ dish.restaurants?.name }}</p>
+              <p class="text-xs font-bold text-brand-500 mt-1">₦{{ Number(dish.price).toLocaleString('en-NG') }}</p>
+            </div>
+          </NuxtLink>
+        </div>
+      </div>
+
+      <!-- Featured Restaurants — shown when admin marks restaurants as featured -->
+      <div v-if="featuredRestaurants.length">
+        <p class="text-base font-semibold text-[#191919] mb-3">Featured Restaurants</p>
+        <div class="flex gap-3 overflow-x-auto scrollbar-none pb-1">
+          <NuxtLink
+            v-for="r in featuredRestaurants"
+            :key="r.id"
+            :to="`/restaurant/${r.id}`"
+            class="shrink-0 w-40 bg-white rounded-2xl overflow-hidden shadow-sm"
+          >
+            <div class="w-full h-28 bg-[#f5e9e7] flex items-center justify-center">
+              <UIcon v-if="!r.image_url" name="i-lucide-utensils" class="w-10 h-10 text-brand-300" />
+              <img v-else :src="r.image_url" class="w-full h-full object-cover" />
+            </div>
+            <div class="p-2.5">
+              <p class="text-xs font-semibold text-[#191919] truncate">{{ r.name }}</p>
+              <div class="flex items-center gap-1 mt-1">
+                <UIcon name="i-lucide-star" class="w-3 h-3 text-[#f8cc6b] fill-[#f8cc6b]" />
+                <span class="text-[10px] text-[#969696]">{{ r.rating ?? '4.5' }}</span>
+                <span class="text-[10px] text-[#969696]">· {{ r.average_prep_time_minutes ?? 30 }} Mins</span>
+              </div>
+            </div>
+          </NuxtLink>
+        </div>
+      </div>
+
       <!-- ── Dynamic sections (admin-controlled) or fallback ── -->
 
       <!-- Skeleton while sections load -->
@@ -306,6 +355,22 @@ const { data: catData, pending: catPending } = await useAsyncData(
   { server: false }
 )
 const categories = computed<any[]>(() => (catData.value as any)?.data ?? [])
+
+// ── Featured Dishes (is_featured flag on menu_items) ─────────────────────────
+const { data: featuredDishesData } = await useAsyncData(
+  'featured-dishes',
+  async () => { try { return await api.getFeaturedDishes() as any } catch { return { data: [] } } },
+  { server: false }
+)
+const featuredDishes = computed<any[]>(() => (featuredDishesData.value as any)?.data ?? [])
+
+// ── Featured Restaurants (is_featured flag on restaurants) ────────────────────
+const { data: featuredRestaurantsData } = await useAsyncData(
+  'featured-restaurants',
+  async () => { try { return await api.getFeaturedRestaurants() as any } catch { return { data: [] } } },
+  { server: false }
+)
+const featuredRestaurants = computed<any[]>(() => (featuredRestaurantsData.value as any)?.data ?? [])
 
 // ── Home sections (admin-curated rows) ───────────────────────────────────────
 const { data: sectionsData, pending: sectionsPending } = await useAsyncData(
