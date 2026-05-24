@@ -14,9 +14,23 @@
         <UIcon name="i-lucide-check-circle-2" class="w-12 h-12 text-brand-500" />
       </div>
       <h1 class="text-2xl font-bold text-[#1e1e1e] mb-2">Payment Successful!</h1>
-      <p class="text-sm text-[#585858] mb-8 max-w-xs">
+      <p class="text-sm text-[#585858] mb-6 max-w-xs">
         Your order has been confirmed and the restaurant is getting started on it.
       </p>
+
+      <!-- TEMP: gift notification debug banner -->
+      <div v-if="giftDebug" class="w-full max-w-sm mb-6 rounded-2xl border text-left text-xs p-4"
+        :class="giftDebug.email?.sent ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'"
+      >
+        <p class="font-semibold mb-1" :class="giftDebug.email?.sent ? 'text-green-700' : 'text-red-700'">
+          {{ giftDebug.email?.sent ? '✅ Gift email sent!' : '❌ Gift email failed' }}
+        </p>
+        <p v-if="giftDebug.email?.error" class="text-red-600 break-all">{{ giftDebug.email.error }}</p>
+        <p v-if="giftDebug.whatsapp" class="mt-1" :class="giftDebug.whatsapp.sent ? 'text-green-600' : 'text-red-600'">
+          WhatsApp: {{ giftDebug.whatsapp.sent ? '✅ sent' : '❌ ' + giftDebug.whatsapp.error }}
+        </p>
+      </div>
+
       <NuxtLink
         :to="`/orders/${orderId}`"
         class="w-full max-w-sm py-4 rounded-full bg-brand-500 text-white text-base font-semibold flex items-center justify-center gap-2 mb-3"
@@ -59,6 +73,7 @@ const api = useApi()
 const status = ref<'verifying' | 'success' | 'error'>('verifying')
 const orderId = ref<string | null>(null)
 const errorMessage = ref('Something went wrong. Please try again.')
+const giftDebug = ref<any>(null)
 
 onMounted(async () => {
   const reference = (route.query.reference ?? route.query.trxref) as string | undefined
@@ -93,6 +108,14 @@ onMounted(async () => {
   try {
     await api.verifyPayment(paymentId, reference)
     sessionStorage.removeItem('nearbymePayment')
+
+    // TEMP: read gift notification debug result
+    const debugRaw = sessionStorage.getItem('giftNotifDebug')
+    if (debugRaw) {
+      try { giftDebug.value = JSON.parse(debugRaw) } catch {}
+      sessionStorage.removeItem('giftNotifDebug')
+    }
+
     status.value = 'success'
   } catch (e: any) {
     status.value = 'error'

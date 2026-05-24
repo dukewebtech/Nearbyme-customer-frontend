@@ -325,6 +325,12 @@ async function placeOrder() {
     const orderRes = await api.placeOrder(orderBody) as any
     const orderId  = orderRes.data?.id
     if (!orderId) throw new Error('Order creation failed')
+
+    // TEMP: store gift notification debug result so callback page can show it
+    if (orderRes._debug_gift_notifications) {
+      sessionStorage.setItem('giftNotifDebug', JSON.stringify(orderRes._debug_gift_notifications))
+    }
+
     giftStore.clear()
     await redirectToPaystack(orderId)
   } catch (e: any) {
