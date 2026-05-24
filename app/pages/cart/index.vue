@@ -93,62 +93,29 @@
         </div>
       </div>
 
-      <!-- Gift toggle -->
+      <!-- Gift banner -->
       <div class="px-4 mb-4">
-        <div class="bg-white rounded-2xl p-4">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-[#fdefec] flex items-center justify-center shrink-0">
-              <UIcon name="i-lucide-gift" class="w-5 h-5 text-brand-500" />
-            </div>
-            <div class="flex-1">
-              <p class="text-sm font-semibold text-[#1e1e1e]">Send as a Gift</p>
-              <p class="text-xs text-[#969696]">Order will be delivered to someone else</p>
-            </div>
-            <button
-              class="w-12 h-6 rounded-full transition-colors relative shrink-0"
-              :class="isGift ? 'bg-brand-500' : 'bg-gray-200'"
-              @click="isGift = !isGift"
-            >
-              <span class="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all"
-                :class="isGift ? 'left-[26px]' : 'left-0.5'" />
-            </button>
+        <button
+          class="w-full rounded-2xl p-4 flex items-center gap-3 text-left transition-colors active:scale-[0.98] transition-transform"
+          :class="giftStore.isActive ? 'bg-brand-500' : 'bg-amber-50'"
+          @click="navigateTo('/cart/gift')"
+        >
+          <div
+            class="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+            :class="giftStore.isActive ? 'bg-white/20' : 'bg-amber-100'"
+          >
+            <UIcon name="i-lucide-gift" class="w-5 h-5" :class="giftStore.isActive ? 'text-white' : 'text-amber-500'" />
           </div>
-
-          <!-- Beneficiary form -->
-          <div v-if="isGift" class="mt-4 space-y-3 pt-4 border-t border-gray-100">
-            <p class="text-xs font-semibold text-[#969696] uppercase tracking-wide">Recipient Details</p>
-            <input
-              v-model="beneficiary.name"
-              type="text"
-              placeholder="Recipient's full name"
-              class="w-full bg-[#f5f5f5] rounded-xl px-4 py-3 text-sm outline-none"
-            />
-            <input
-              v-model="beneficiary.phone"
-              type="tel"
-              placeholder="Recipient's phone number"
-              class="w-full bg-[#f5f5f5] rounded-xl px-4 py-3 text-sm outline-none"
-            />
-            <input
-              v-model="beneficiary.email"
-              type="email"
-              placeholder="Recipient's email (optional)"
-              class="w-full bg-[#f5f5f5] rounded-xl px-4 py-3 text-sm outline-none"
-            />
-            <input
-              v-model="beneficiary.address"
-              type="text"
-              placeholder="Delivery address for recipient"
-              class="w-full bg-[#f5f5f5] rounded-xl px-4 py-3 text-sm outline-none"
-            />
-            <textarea
-              v-model="beneficiary.note"
-              placeholder="Gift note (optional)"
-              rows="2"
-              class="w-full bg-[#f5f5f5] rounded-xl px-4 py-3 text-sm outline-none resize-none"
-            />
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold truncate" :class="giftStore.isActive ? 'text-white' : 'text-amber-900'">
+              {{ giftStore.isActive ? `Gift · ${giftStore.name}` : 'Send as a gift' }}
+            </p>
+            <p class="text-xs" :class="giftStore.isActive ? 'text-white/80' : 'text-amber-700'">
+              {{ giftStore.isActive ? 'Tap to edit recipient details' : 'Surprise someone special with a meal' }}
+            </p>
           </div>
-        </div>
+          <UIcon name="i-lucide-chevron-right" class="w-4 h-4 shrink-0" :class="giftStore.isActive ? 'text-white' : 'text-amber-400'" />
+        </button>
       </div>
 
       <!-- Promo code -->
@@ -266,8 +233,7 @@ const deliveryAddress = ref('Omoba Murphy Adetoro Street, Lagos')
 const lat            = ref(6.5244)
 const lng            = ref(3.3792)
 
-const isGift    = ref(false)
-const beneficiary = reactive({ name: '', phone: '', email: '', address: '', note: '' })
+const giftStore = useGiftStore()
 
 const promoCode    = ref('')
 const promoMsg     = ref('')
@@ -342,36 +308,24 @@ async function redirectToPaystack(orderId: string) {
 
 async function placeOrder() {
   if (placing.value) return
-
-  // Client-side gift validation — backend would 400 otherwise
-  if (isGift.value) {
-    if (!beneficiary.name.trim()) {
-      toast.add({ title: "Recipient's name is required for gift orders", color: 'error' })
-      return
-    }
-    if (!beneficiary.phone.trim() && !beneficiary.email.trim()) {
-      toast.add({ title: "Enter the recipient's phone number or email so we can notify them", color: 'error' })
-      return
-    }
-  }
-
   placing.value = true
   try {
     const orderBody: Record<string, any> = {
-      delivery_address:   isGift.value ? beneficiary.address || deliveryAddress.value : deliveryAddress.value,
+      delivery_address:   giftStore.isActive && giftStore.address ? giftStore.address : deliveryAddress.value,
       delivery_latitude:  lat.value,
       delivery_longitude: lng.value,
     }
-    if (isGift.value) {
+    if (giftStore.isActive) {
       orderBody.is_gift              = true
-      orderBody.gift_recipient_name  = beneficiary.name
-      orderBody.gift_recipient_phone = beneficiary.phone || null
-      orderBody.gift_recipient_email = beneficiary.email || null
-      orderBody.gift_message         = beneficiary.note || null
+      orderBody.gift_recipient_name  = giftStore.name
+      orderBody.gift_recipient_phone = giftStore.phone || null
+      orderBody.gift_recipient_email = giftStore.email || null
+      orderBody.gift_message         = giftStore.note  || null
     }
     const orderRes = await api.placeOrder(orderBody) as any
     const orderId  = orderRes.data?.id
     if (!orderId) throw new Error('Order creation failed')
+    giftStore.clear()
     await redirectToPaystack(orderId)
   } catch (e: any) {
     toast.add({ title: e?.data?.error ?? e?.message ?? 'Could not process order', color: 'error' })
