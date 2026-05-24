@@ -130,6 +130,12 @@
               class="w-full bg-[#f5f5f5] rounded-xl px-4 py-3 text-sm outline-none"
             />
             <input
+              v-model="beneficiary.email"
+              type="email"
+              placeholder="Recipient's email (optional)"
+              class="w-full bg-[#f5f5f5] rounded-xl px-4 py-3 text-sm outline-none"
+            />
+            <input
               v-model="beneficiary.address"
               type="text"
               placeholder="Delivery address for recipient"
@@ -261,7 +267,7 @@ const lat            = ref(6.5244)
 const lng            = ref(3.3792)
 
 const isGift    = ref(false)
-const beneficiary = reactive({ name: '', phone: '', address: '', note: '' })
+const beneficiary = reactive({ name: '', phone: '', email: '', address: '', note: '' })
 
 const promoCode    = ref('')
 const promoMsg     = ref('')
@@ -336,6 +342,19 @@ async function redirectToPaystack(orderId: string) {
 
 async function placeOrder() {
   if (placing.value) return
+
+  // Client-side gift validation — backend would 400 otherwise
+  if (isGift.value) {
+    if (!beneficiary.name.trim()) {
+      toast.add({ title: "Recipient's name is required for gift orders", color: 'error' })
+      return
+    }
+    if (!beneficiary.phone.trim() && !beneficiary.email.trim()) {
+      toast.add({ title: "Enter the recipient's phone number or email so we can notify them", color: 'error' })
+      return
+    }
+  }
+
   placing.value = true
   try {
     const orderBody: Record<string, any> = {
@@ -344,10 +363,11 @@ async function placeOrder() {
       delivery_longitude: lng.value,
     }
     if (isGift.value) {
-      orderBody.is_gift            = true
+      orderBody.is_gift              = true
       orderBody.gift_recipient_name  = beneficiary.name
-      orderBody.gift_recipient_phone = beneficiary.phone
-      orderBody.gift_note          = beneficiary.note
+      orderBody.gift_recipient_phone = beneficiary.phone || null
+      orderBody.gift_recipient_email = beneficiary.email || null
+      orderBody.gift_message         = beneficiary.note || null
     }
     const orderRes = await api.placeOrder(orderBody) as any
     const orderId  = orderRes.data?.id
