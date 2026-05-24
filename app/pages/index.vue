@@ -236,10 +236,10 @@ watch(promoBanners, (list) => {
 onUnmounted(() => { if (bannerTimer) clearInterval(bannerTimer) })
 
 function onBannerTouchStart(e: TouchEvent) {
-  bannerTouchX = e.touches[0].clientX
+  bannerTouchX = e.touches[0]?.clientX ?? 0
 }
 function onBannerTouchEnd(e: TouchEvent) {
-  const dx = e.changedTouches[0].clientX - bannerTouchX
+  const dx = (e.changedTouches[0]?.clientX ?? bannerTouchX) - bannerTouchX
   if (Math.abs(dx) < 30) return
   const total = promoBanners.value.length
   if (dx < 0) activeBanner.value = (activeBanner.value + 1) % total
@@ -329,7 +329,7 @@ const categories = computed<any[]>(() => (catData.value as any)?.data ?? [])
 // ── Home sections (admin-curated rows) ───────────────────────────────────────
 const { data: sectionsData } = await useAsyncData(
   'home-sections',
-  () => api.getHomeSections() as any,
+  async () => { try { return await api.getHomeSections() as any } catch { return { data: [] } } },
   { server: false }
 )
 const homeSections = computed<any[]>(() => (sectionsData.value as any)?.data ?? [])
