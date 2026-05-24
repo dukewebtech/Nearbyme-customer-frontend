@@ -108,8 +108,8 @@
         </div>
       </template>
 
-      <!-- Admin sections -->
-      <template v-else-if="homeSections.length">
+      <!-- Admin sections — only if at least one section has items -->
+      <template v-else-if="homeSections.some((s) => s.items?.length)">
         <div v-for="section in homeSections" :key="section.id">
           <div v-if="section.items && section.items.length">
             <div class="flex items-center justify-between mb-3">
