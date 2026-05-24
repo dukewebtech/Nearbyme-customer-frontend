@@ -94,6 +94,9 @@ export const useApi = () => {
   const reviewRestaurant = (id: string, body: any) => post(`/restaurants/${id}/reviews`, body)
   const reviewRider      = (id: string, body: any) => post(`/riders/${id}/reviews`, body)
 
+  // Home sections (admin-curated rows)
+  const getHomeSections = () => get('/home-sections')
+
   // Notifications
   const getNotifications     = (params?: Record<string, any>) => get('/notifications', params)
   const markNotificationRead = (id: string) => patch(`/notifications/${id}/read`, {})
@@ -125,5 +128,6 @@ export const useApi = () => {
     reviewRestaurant, reviewRider,
     getNotifications, markNotificationRead,
     getBeneficiaries, createBeneficiary, deleteBeneficiary, getPaymentMethods,
+    getHomeSections,
   }
 }

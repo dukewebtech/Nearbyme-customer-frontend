@@ -128,6 +128,58 @@
         </div>
       </div>
 
+      <!-- Admin-curated home sections (e.g. "Xmas Meals", "Ramadan Specials") -->
+      <div v-for="section in homeSections" :key="section.id">
+        <div v-if="section.items && section.items.length" class="">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <p class="text-base font-semibold text-[#191919]">{{ section.title }}</p>
+              <p v-if="section.subtitle" class="text-xs text-[#969696] mt-0.5">{{ section.subtitle }}</p>
+            </div>
+          </div>
+          <div class="flex gap-3 overflow-x-auto scrollbar-none pb-1">
+            <template v-for="item in section.items" :key="item.id">
+              <!-- Restaurant item -->
+              <NuxtLink
+                v-if="item.item_type === 'restaurant' && item.restaurant"
+                :to="`/restaurant/${item.restaurant?.id}`"
+                class="shrink-0 w-40 bg-white rounded-2xl overflow-hidden shadow-sm"
+              >
+                <div class="w-full h-28 bg-[#f5e9e7] flex items-center justify-center">
+                  <UIcon v-if="!item.restaurant?.image_url" name="i-lucide-utensils" class="w-10 h-10 text-brand-300" />
+                  <img v-else :src="item.restaurant?.image_url" class="w-full h-full object-cover" />
+                </div>
+                <div class="p-2.5">
+                  <p class="text-xs font-semibold text-[#191919] truncate">{{ item.restaurant?.name }}</p>
+                  <div class="flex items-center gap-1 mt-1">
+                    <UIcon name="i-lucide-star" class="w-3 h-3 text-[#f8cc6b] fill-[#f8cc6b]" />
+                    <span class="text-[10px] text-[#969696]">{{ item.restaurant?.rating ?? '4.5' }}</span>
+                    <span class="text-[10px] text-[#969696]">· {{ item.restaurant?.average_prep_time_minutes ?? 30 }} Mins</span>
+                  </div>
+                </div>
+              </NuxtLink>
+
+              <!-- Menu item -->
+              <NuxtLink
+                v-else-if="item.item_type === 'menu_item' && item.menu_item"
+                :to="`/restaurant/${item.menu_item?.restaurants?.id}`"
+                class="shrink-0 w-40 bg-white rounded-2xl overflow-hidden shadow-sm"
+              >
+                <div class="w-full h-28 bg-[#f5e9e7] flex items-center justify-center">
+                  <UIcon v-if="!item.menu_item?.image_url" name="i-lucide-utensils" class="w-10 h-10 text-brand-300" />
+                  <img v-else :src="item.menu_item?.image_url" class="w-full h-full object-cover" />
+                </div>
+                <div class="p-2.5">
+                  <p class="text-xs font-semibold text-[#191919] truncate">{{ item.menu_item?.name }}</p>
+                  <p class="text-[10px] text-[#969696] truncate mt-0.5">{{ item.menu_item?.restaurants?.name }}</p>
+                  <p class="text-xs font-bold text-brand-500 mt-1">₦{{ Number(item.menu_item?.price).toLocaleString('en-NG') }}</p>
+                </div>
+              </NuxtLink>
+            </template>
+          </div>
+        </div>
+      </div>
+
       <!-- Restaurants to Explore -->
       <div>
         <div class="flex items-center justify-between mb-3">
@@ -273,6 +325,14 @@ const { data: catData, pending: catPending } = await useAsyncData(
   { server: false }
 )
 const categories = computed<any[]>(() => (catData.value as any)?.data ?? [])
+
+// ── Home sections (admin-curated rows) ───────────────────────────────────────
+const { data: sectionsData } = await useAsyncData(
+  'home-sections',
+  () => api.getHomeSections() as any,
+  { server: false }
+)
+const homeSections = computed<any[]>(() => (sectionsData.value as any)?.data ?? [])
 
 // ── Restaurants ───────────────────────────────────────────────────────────────
 const { data, pending } = await useAsyncData(
