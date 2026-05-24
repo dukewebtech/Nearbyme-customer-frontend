@@ -98,7 +98,7 @@
         <button
           class="w-full rounded-2xl p-4 flex items-center gap-3 text-left transition-colors active:scale-[0.98] transition-transform"
           :class="giftStore.isActive ? 'bg-brand-500' : 'bg-amber-50'"
-          @click="navigateTo('/cart/gift')"
+          @click="navigateTo('/cart/beneficiaries')"
         >
           <div
             class="w-10 h-10 rounded-full flex items-center justify-center shrink-0"

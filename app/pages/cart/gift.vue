@@ -91,6 +91,20 @@
           class="w-full bg-[#f5f5f5] rounded-2xl px-4 py-3.5 text-sm text-[#1e1e1e] outline-none resize-none placeholder:text-[#bdbdbd]"
         />
       </div>
+
+      <!-- Save as beneficiary -->
+      <button
+        class="flex items-center gap-3 w-full py-1"
+        @click="saveAsBeneficiary = !saveAsBeneficiary"
+      >
+        <div
+          class="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors"
+          :class="saveAsBeneficiary ? 'border-brand-500 bg-brand-500' : 'border-gray-300'"
+        >
+          <div v-if="saveAsBeneficiary" class="w-2 h-2 rounded-full bg-white" />
+        </div>
+        <span class="text-sm font-medium text-[#1e1e1e]">Save as beneficiary</span>
+      </button>
     </div>
   </div>
 
@@ -128,7 +142,9 @@ const form = reactive({
   note:    giftStore.note,
 })
 
-function proceed() {
+const saveAsBeneficiary = ref(false)
+
+async function proceed() {
   if (!form.name.trim()) {
     toast.add({ title: "Receiver's name is required", color: 'error' })
     return
@@ -137,6 +153,19 @@ function proceed() {
     toast.add({ title: "Enter the receiver's phone number or email so we can notify them", color: 'error' })
     return
   }
+
+  if (saveAsBeneficiary.value && form.name.trim() && form.phone.trim() && form.address.trim()) {
+    try {
+      const apiComp = useApi()
+      await apiComp.createBeneficiary({
+        name:    form.name.trim(),
+        phone:   form.phone.trim(),
+        email:   form.email.trim() || null,
+        address: form.address.trim(),
+      })
+    } catch { /* silent — don't block checkout if save fails */ }
+  }
+
   giftStore.activate({ ...form })
   navigateTo('/cart')
 }
