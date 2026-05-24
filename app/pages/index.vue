@@ -209,7 +209,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ middleware: 'auth' })
+definePageMeta({ middleware: 'auth', ssr: false })
 
 const api  = useApi()
 const auth = useAuthStore()
