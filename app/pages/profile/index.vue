@@ -65,6 +65,7 @@
         </div>
       </template>
     </UModal>
+    <p class="text-center text-xs text-gray-400 py-4">v2.0.1</p>
   </div>
 </template>
 
