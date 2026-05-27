@@ -281,14 +281,14 @@ function isStepDone(key: string) {
 }
 
 const statusMessage = computed(() => ({
-  placed:    'Order received! Getting ready.',
-  accepted:  'Restaurant accepted your order.',
+  placed:    'Waiting for restaurant to confirm your order.',
+  accepted:  'Restaurant confirmed! Getting ready to prepare.',
   preparing: 'Your order is being prepared.',
-  ready:     'Order ready for pickup.',
+  ready:     'Order ready — rider is on the way to pick it up.',
   picked_up: 'Hold tight! Your order is on its way.',
   delivered: 'Your order has been delivered!',
   cancelled: 'This order was cancelled.',
-}[order.value?.status] ?? 'Tracking your order...'))
+} as Record<string, string>)[order.value?.status] ?? 'Tracking your order...')
 
 const shortId    = computed(() => (orderId).slice(-8).toUpperCase())
 const riderName  = computed(() => { const r = order.value?.riders; if (!r) return 'Searching for rider...'; const u = r.users; return u ? `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() || 'Rider' : 'Rider' })
