@@ -32,8 +32,8 @@
           class="absolute top-24 left-4 right-4 bg-[#1e1e1e] rounded-2xl px-4 py-3 flex items-center justify-between z-10"
         >
           <div>
-            <p class="text-sm font-semibold text-white">Your rider has arrived</p>
-            <p class="text-xs text-white/70 mt-0.5">Please message me to receive your order</p>
+            <p class="text-sm font-semibold text-white">{{ riderName }} picked up your order and is on the way!</p>
+            <p class="text-xs text-white/70 mt-0.5">Your order is heading to you now</p>
           </div>
           <button class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center" @click="confirmOpen = true">
             <UIcon name="i-lucide-x" class="w-4 h-4 text-white" />
